@@ -1,0 +1,36 @@
+#security
+.env
+
+#data 
+data/
+.csv
+.h5
+.parquet
+.db
+.sqlite
+
+#logs
+/logs
+*.log
+*.sqlite3
+
+#python & jupyter and chache
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*$py.class
+
+#IDE and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+#virtual environments
+venv/
+env/
+.venv/
+
+
+
+
