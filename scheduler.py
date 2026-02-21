@@ -1,8 +1,11 @@
+import os 
 import time
 import schedule
 import logging
 from live_main import run_live_bot
 
+# create a "logs" folder if doesnt already exist
+os.makedirs("logs", exist_ok=True)
 # dual logging , terminal and file
 logging.basicConfig(
     level=logging.INFO, 

@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 def run_algo():
     TICKER='SPY'
-    START = '2015-01-01'
-    END = '2023-12-31'
+    START = '2007-01-01'
+    END = '2011-12-31'
     CASH = 10000.00
 
     logger.info(f"Starting Algo Engine for {TICKER}")
