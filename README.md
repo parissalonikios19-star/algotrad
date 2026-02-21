@@ -89,9 +89,13 @@ ALPACA_BASE_URL=https://paper-api.alpaca.markets
 
 ### Backtest (Historical Simulation)
 Runs the strategy against historical SPY data from 2007–2011:
+
 ```bash
 python main.py
 ```
+The default backtest window (2007–2011) is set to demonstrate the strategy's
+ability to avoid the 2008 financial crisis drawdown. For a full historical
+evaluation, adjust START and END in main.py.
 
 ### Live Bot (Single Run)
 Fetches today's data, generates a signal, and executes a trade if needed:
