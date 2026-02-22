@@ -42,19 +42,25 @@ def run_live_bot():
     logger.info(f"[*] Actual Shares Owned: {current_shares}")
 
     if target_signal == 1.0 and current_shares == 0:
-        logger.info("[*] MISMATCH: Strategy wants IN, but we are OUT. Buying...")
         
-        # Calculate how many shares we can afford
-        buying_power = broker.get_buying_power()
-        
-        # Leave a cash buffer to account for slippage/market fluctuations
-        investable_cash = buying_power * CASH_BUFFER
-        qty = int(investable_cash // last_price)
-        
-        if qty > 0:
-            broker.submit_order(TICKER, qty, 'buy')
+        # if there is an open position ,  wait until it has gone through
+        if broker.has_open_trade(TICKER):
+             logger.info("[*] Open order already exists . Skipping to avoid duplicate buy.")
         else:
-            logger.warning("[!] Insufficient funds to buy 1 share.")
+
+            logger.info("[*] MISMATCH: Strategy wants IN, but we are OUT. Buying...")
+        
+            # Calculate how many shares we can afford
+            buying_power = broker.get_buying_power()
+        
+            # Leave a cash buffer to account for slippage/market fluctuations
+            investable_cash = buying_power * CASH_BUFFER
+            qty = int(investable_cash // last_price)
+        
+            if qty > 0:
+                broker.submit_order(TICKER, qty, 'buy')
+            else:
+                logger.warning("[!] Insufficient funds to buy 1 share.")
 
     elif target_signal == 0.0 and current_shares > 0:
         logger.info("[*] MISMATCH: Strategy wants OUT, but we are IN. Liquidating...")

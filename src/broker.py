@@ -41,6 +41,11 @@ class AlpacaBroker:
     def get_last_price(self , ticker):
         return float(self.api.get_latest_trade(ticker).price)
 
+    # checks if there is an open position , (trade on weekends stays open while market is closed)
+    def has_open_trade(self , ticker):
+        orders = self.api.list_orders(status='open', symbols=[ticker])
+        return len(orders)>0
+
     # checks how much of 'ticker' the portfolio owns
     def get_position(self , ticker):
         try:
