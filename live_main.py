@@ -4,6 +4,7 @@ from datetime import datetime , timedelta
 from src.data_handler import DataHandler
 from src.strategy import MACrossoverStrategy
 from src.broker import AlpacaBroker
+from src.notifier import send_alert
 
 # dual logging , terminal and file
 logging.basicConfig(
@@ -88,6 +89,7 @@ def run_live_bot():
                 order = broker.submit_order(TICKER, qty, 'buy')
                 if order:
                     broker.confirm_order(order.id)
+                    send_alert(f" ALGO ALERT: Successfully BOUGHT {qty} shares of {TICKER} at ${last_price:.2f}!")
             else:
                 logger.warning("[!] Insufficient funds to buy 1 share.")
 
@@ -96,6 +98,7 @@ def run_live_bot():
         order = broker.submit_order(TICKER, current_shares, 'sell')
         if order:
             broker.confirm_order(order.id)
+            send_alert(f" ALGO ALERT: Successfully SOLD {current_shares} shares of {TICKER} at ${last_price:.2f}!")
     else:
         logger.info("[*] State is perfectly synced. No action required today.")
         
