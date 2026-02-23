@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 # set time
 LOCAL_TZ = pytz.timezone("Europe/Athens")
-RUN_TIME_LOCAL = "22:45"
+RUN_TIME_LOCAL = "23:15"
 
 # Convert 22:45 Athens time to UTC dynamically (handles daylight saving)
 def get_utc_run_time():
