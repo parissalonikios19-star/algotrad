@@ -1,5 +1,6 @@
 import pytest
 import pandas as pd
+from datetime import datetime
 from unittest.mock import patch
 from live_main import run_live_bot
 
@@ -13,13 +14,24 @@ def test_live_bot_submits_buy_order(mock_strategy_class, mock_handler_class, moc
     mock_broker.get_last_price.return_value = 100.0
     mock_broker.get_position.return_value = 0.0      # We own 0 shares (We are OUT)
     mock_broker.get_buying_power.return_value = 1000.0 # We have $1,000 to spend
+    
+    # NEW MOCKS: Feed safe values to your new defense mechanisms!
+    mock_broker.is_market_open.return_value = False       # Pretend the market is closed
+    mock_broker.get_portfolio_value.return_value = 1000.0 # Pretend we haven't lost money
+    mock_broker.get_initial_equity.return_value = 1000.0  # Prevent the emergency exit
+    mock_broker.has_open_trade.return_value = False       # Pretend there are no pending orders
+
     mock_handler = mock_handler_class.return_value
     mock_handler.fetch_data.return_value = pd.DataFrame()
     
     # 2. SETUP THE FAKE STRATEGY
     mock_strategy = mock_strategy_class.return_value
+    
+    # NEW: Create a fake Date Index ending today so the stale data check passes!
+    dates = pd.date_range(end=pd.Timestamp.today().normalize(), periods=3)
+    
     # Create a fake signals dataframe where yesterday's signal (iloc[-2]) is 1.0 (BUY)
-    fake_signals = pd.DataFrame({'Close': [490.0, 495.0, 500.0], 'Signal': [0.0, 1.0, 1.0]})
+    fake_signals = pd.DataFrame({'Close': [490.0, 495.0, 500.0], 'Signal': [0.0, 1.0, 1.0]}, index=dates)
     mock_strategy.generate_signals.return_value = fake_signals
     
     # 3. RUN THE BOT
@@ -37,12 +49,23 @@ def test_live_bot_submits_sell_order(mock_strategy_class, mock_handler_class, mo
     mock_broker = mock_broker_class.return_value
     mock_broker.get_last_price.return_value = 100.0
     mock_broker.get_position.return_value = 15.0     # We own 15 shares (We are IN)
+    
+    # Satisfy the defense mechanisms
+    mock_broker.is_market_open.return_value = False
+    mock_broker.get_portfolio_value.return_value = 1000.0
+    mock_broker.get_initial_equity.return_value = 1000.0
+    mock_broker.has_open_trade.return_value = False
+
     mock_handler = mock_handler_class.return_value
     mock_handler.fetch_data.return_value = pd.DataFrame()   
     
     mock_strategy = mock_strategy_class.return_value
+    
+    # Create the datetime index
+    dates = pd.date_range(end=pd.Timestamp.today().normalize(), periods=3)
+    
     # iloc[-2] is 0.0 (SELL)
-    fake_signals = pd.DataFrame({'Close': [490.0, 495.0, 500.0],'Signal': [1.0, 0.0, 0.0]}) 
+    fake_signals = pd.DataFrame({'Close': [490.0, 495.0, 500.0],'Signal': [1.0, 0.0, 0.0]}, index=dates) 
     mock_strategy.generate_signals.return_value = fake_signals
     
     run_live_bot()
@@ -57,11 +80,23 @@ def test_live_bot_stays_synced(mock_strategy_class, mock_handler_class, mock_bro
     mock_broker = mock_broker_class.return_value
     mock_broker.get_last_price.return_value = 100.0
     mock_broker.get_position.return_value = 10.0     # We own 10 shares (We are IN)
+    
+    # Satisfy the defense mechanisms
+    mock_broker.is_market_open.return_value = False
+    mock_broker.get_portfolio_value.return_value = 1000.0
+    mock_broker.get_initial_equity.return_value = 1000.0
+    mock_broker.has_open_trade.return_value = False
+
     mock_handler = mock_handler_class.return_value
     mock_handler.fetch_data.return_value = pd.DataFrame()
+    
     mock_strategy = mock_strategy_class.return_value
+    
+    # Create the datetime index
+    dates = pd.date_range(end=pd.Timestamp.today().normalize(), periods=3)
+    
     # iloc[-2] is 1.0 (BUY/HOLD)
-    fake_signals = pd.DataFrame({'Close': [490.0, 495.0, 500.0],'Signal': [0.0, 1.0, 1.0]}) 
+    fake_signals = pd.DataFrame({'Close': [490.0, 495.0, 500.0],'Signal': [0.0, 1.0, 1.0]}, index=dates) 
     mock_strategy.generate_signals.return_value = fake_signals
     
     run_live_bot()
