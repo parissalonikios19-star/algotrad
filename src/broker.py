@@ -2,6 +2,7 @@ import os
 import logging
 from dotenv import load_dotenv
 import alpaca_trade_api as tradeapi
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,20 @@ class AlpacaBroker:
     def has_open_trade(self , ticker):
         orders = self.api.list_orders(status='open', symbols=[ticker])
         return len(orders)>0
+    
+    # checks if market is currently open
+    def is_market_open(self):
+        clock = self.api.get_clock()
+        return clock.is_open
+    
+    # checks if order has gone through
+    def confirm_order(self , order_id ,wait_seconds=5):
+        time.sleep(wait_seconds)
+        order = self.api.get_order(order_id)
+        logger.info(f"[*] Order confirmation — Status: {order.status}")
+        if order.status not in ['filled', 'partially_filled', 'accepted', 'pending_new']:
+            logger.warning(f"[!] Order {order_id} has unexpected status: {order.status}")
+        return order.status
 
     # checks how much of 'ticker' the portfolio owns
     def get_position(self , ticker):
@@ -73,3 +88,13 @@ class AlpacaBroker:
         except Exception as e:
             logger.error(f"[!] Failed to submit order: {e}")
             return None
+        
+    # calculates portfolio value
+    def get_portfolio_value(self):
+        account = self.api.get_account()
+        return float(account.portfolio_value)
+    
+    # equity at last days close
+    def get_initial_equity(self):
+        account = self.api.get_account()
+        return float(account.last_equity)

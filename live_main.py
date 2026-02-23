@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 def run_live_bot():
     TICKER = 'SPY'
     CASH_BUFFER = 0.95
+    MAX_DAILY_LOSS_PCT = -5.0
 
     # need at least 250 days (300 to be sure) to have 200 days worth of data
     end_date = datetime.today().strftime('%Y-%m-%d')
@@ -32,6 +33,18 @@ def run_live_bot():
     raw_data = handler.fetch_data()
     signals = strategy.generate_signals(raw_data)
 
+    # confirm we have enough recent data
+    last_data_date = signals.index[-1].date()
+    today = datetime.today().date()
+    days_gap = (today - last_data_date).days
+    # not enough data , for example public holidays
+    if days_gap > 5:
+        logger.error(f"[!] Data appears stale — last date is {last_data_date}. Aborting.")
+        return
+    # small data gap
+    if days_gap > 1:
+        logger.warning(f"[!] Possible holiday gap — last data date is {last_data_date}.")
+        
     target_signal = signals['Signal'].iloc[-2]  # yesterdays confirmed signal
     last_price = broker.get_last_price(TICKER)
 
@@ -40,6 +53,20 @@ def run_live_bot():
 
     current_shares = broker.get_position(TICKER)
     logger.info(f"[*] Actual Shares Owned: {current_shares}")
+
+    # algorithm is designed to trade when market is closed
+    if broker.is_market_open():
+        logger.warning("[!] Market is currently open. Bot is designed to run after close. Skipping to avoid live execution.")
+        return
+    
+    # EMERGENCY EXIT — halt if daily loss exceeds 5%
+    portfolio_value = broker.get_portfolio_value()
+    initial_equity = broker.get_initial_equity()
+    daily_loss_pct = ((portfolio_value - initial_equity) / initial_equity) * 100
+
+    if daily_loss_pct < MAX_DAILY_LOSS_PCT:
+        logger.critical(f"[!!!] EMERGENCY EXIT TRIGGERED. Daily loss: {daily_loss_pct:.2f}%. Bot halting.")
+        return
 
     if target_signal == 1.0 and current_shares == 0:
         
@@ -58,14 +85,17 @@ def run_live_bot():
             qty = int(investable_cash // last_price)
         
             if qty > 0:
-                broker.submit_order(TICKER, qty, 'buy')
+                order = broker.submit_order(TICKER, qty, 'buy')
+                if order:
+                    broker.confirm_order(order.id)
             else:
                 logger.warning("[!] Insufficient funds to buy 1 share.")
 
     elif target_signal == 0.0 and current_shares > 0:
         logger.info("[*] MISMATCH: Strategy wants OUT, but we are IN. Liquidating...")
-        broker.submit_order(TICKER, current_shares, 'sell')
-
+        order = broker.submit_order(TICKER, current_shares, 'sell')
+        if order:
+            broker.confirm_order(order.id)
     else:
         logger.info("[*] State is perfectly synced. No action required today.")
         
