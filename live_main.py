@@ -67,6 +67,7 @@ def run_live_bot():
 
     if daily_loss_pct < MAX_DAILY_LOSS_PCT:
         logger.critical(f"[!!!] EMERGENCY EXIT TRIGGERED. Daily loss: {daily_loss_pct:.2f}%. Bot halting.")
+        send_alert(f"EMERGENCY EXIT TRIGGERED. Daily loss: {daily_loss_pct:.2f}%. Bot has halted. Manual review required.")
         return
 
     if target_signal == 1.0 and current_shares == 0:
